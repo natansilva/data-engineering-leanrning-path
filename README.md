@@ -6,7 +6,7 @@ Roadmap developed to guide my mentoring program in Data Engineering
 
 ### Environment Setup and Configuration
 
-Installation and configuration of tools that assist and streamline daily development work.
+Installation and configuration of tools to facilitate daily development work.
 
 #### Shell
 
@@ -14,15 +14,15 @@ Installation and configuration of tools that assist and streamline daily develop
 * Configuration management (.zshrc)
 * Custom aliases and functions
 * Plugins
-  * git
-  * zsh-autosuggestions
-  * zsh-autocomplete
-  * zsh-syntax-highlighting
+  * [git](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git)
+  * [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
+  * [zsh-autocomplete](https://github.com/marlonrichert/zsh-autocomplete)
+  * [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)
 * Shell tools
   * git
-  * jq
-  * yq
-  * curl
+  * [jq](https://jqlang.org)
+  * [yq](https://github.com/mikefarah/yq)
+  * [curl](https://curl.se)
 
 #### Python
 
@@ -30,56 +30,102 @@ Installation and creation of a development environment that can use multiple Pyt
 
 * Python installation
 * Virtual environment management
-  * pyenv
+  * [pyenv](https://github.com/pyenv/pyenv)
   * venv
-  * virtualenv
-* uv
-  * ruff
-
-#### IDE
-
-Tools that can be used with IDEs to increase productivity and facilitate daily work.
-
-* Creation of [skills](https://agentskills.io/home).
-* Copilot integration.
-* MCP integration.
-
-### Data Ingestion
-
-Data ingestion from different sources using Python and creation of DAGs to orchestrate ingestion.
-
-#### API Ingestion
-
-* Ingestion of data from [OpenF1](https://openf1.org/docs/#introduction)
-* Ingestion of unstructured data from [openfootball](https://github.com/openfootball)
-* Ingestion of CSV data from [Kaggle on Olympics](https://www.kaggle.com/datasets/heesoo37/120-years-of-olympic-history-athletes-and-results)
-
-#### Orchestration
-
-* Cron
-* Airflow
-  * Scheduler
-  * Executor
-  * Workers
-  * DAGs
-  * Tasks
-  * Operators
+* [uv](https://docs.astral.sh/uv/)
+* [ruff](https://docs.astral.sh/ruff/)
 
 ### Lakehouse
 
-Here we store data in the bronze layer (raw), clean and standardize in the silver layer (trusted), and prepare data for BI or AI/ML models in the gold layer (refined).
+Building a Data Lakehouse following the medallion architecture to organize data flow into three layers:
 
-* [Apache Iceberg](https://iceberg.apache.org) for data storage
-* [Apache Spark](https://spark.apache.org) for data cleaning and standardization
-* [SQLMesh](https://sqlmesh.readthedocs.io/en/stable/) with [Duckdb](https://duckdb.org)/[Trino](https://trino.io) for data refinement.
-* Catalog service through [Project Nessie](https://projectnessie.org).
+* **Bronze (Raw):** Stores raw data ingested from source systems without transformations, preserving original format and structure. This layer serves as the source of truth and supports reprocessing when needed.
+* **Silver (Trusted):** Data goes through cleaning, deduplication, type enforcement, and standardization. At this stage, datasets have a defined schema and are ready to be combined and enriched. The following processing and validation steps will be applied:
+  * Creation of `hash_key`: an MD5 or SHA-256 hash generated from deduplication key fields, used to identify and track duplicates across runs.
+  * Creation of `processed_at`: pipeline execution timestamp indicating when the record was produced in the silver layer.
+  * Deduplication: removal of duplicate records based on a dataset-specific set of key fields. Duplicate detection uses the deduplication hash described in the metadata above.
+  * Timestamp standardization: all date and time fields are converted to the `UTC-3 (America/Sao_Paulo)` time zone and stored in ISO 8601 format.
+* **Gold (Refined):** Layer with aggregated and modeled datasets for BI tools, dashboards, and AI/ML models. Business rules are applied here to create final analytical views.
+
+#### Technologies Used
+
+* [Apache Iceberg](https://iceberg.apache.org) — Used as the table storage format across all lakehouse layers. Tables will be created and managed with Iceberg, using partitioning to optimize queries and time travel for reprocessing and auditability.
+* [Apache Spark](https://spark.apache.org) — Used to run bronze-to-silver transformations, applying the defined cleaning, deduplication, timestamp standardization, and data enrichment rules.
+* [Polars](https://pola.rs) with [PyIceberg](https://py.iceberg.apache.org) — Used as a local alternative to Spark during development and testing. Polars runs the same bronze-to-silver transformations locally, while PyIceberg handles reading and writing Iceberg tables.
+* [SQLMesh](https://sqlmesh.readthedocs.io/en/stable/) with [DuckDB](https://duckdb.org) — Used to model and materialize gold-layer datasets. SQL models are versioned and tested with SQLMesh, while DuckDB serves as the local execution engine for analytical queries.
+* [Project Nessie](https://projectnessie.org) — Used as the catalog service for Iceberg tables. Branches will be created to isolate development and validate changes before promoting them to production.
+
+### Data Ingestion
+
+In this stage, we will ingest data from three sources and store the raw outputs in the data lake (bronze layer).
+After ingestion, we will apply the defined data treatment and standardization rules before promoting datasets to the silver layer.
+
+#### API Ingestion
+
+* Ingestion of API data from [OpenF1](https://openf1.org/docs/#introduction)
+* Ingestion of unstructured data from [openfootball](https://github.com/openfootball)
+* Ingestion of CSV data from [Olympics Games](https://www.kaggle.com/datasets/heesoo37/120-years-of-olympic-history-athletes-and-results)
+
+All ingestion pipelines will land the extracted data in Iceberg tables in the bronze layer, preserving source granularity for traceability and reprocessing.
+
+#### Orchestration
+
+* Local Airflow setup with Docker and/or Docker Compose.
+* Creation of DAGs to control ingestion workflows for each source.
+* Execution of processing steps to clean, deduplicate, and standardize data before loading into the silver layer.
+* Scheduled and manual DAG runs to support both recurring loads and ad-hoc reprocessing.
+
+### Data Modeling
+
+In this stage, we will model trusted datasets into a dimensional model following a star schema approach for analytical consumption.
+
+The gold layer will be organized with:
+
+* **Fact tables** for business events and measurable metrics (for example, counts, durations, and aggregates).
+* **Dimension tables** for descriptive business attributes (for example, team, driver, event, date, and location).
+* **Defined grain and keys** to ensure consistency in joins, filtering, and KPI calculations.
 
 ### Infrastructure
 
-* Docker
-* Kubernetes
-* Installation of tools used in a k8s environment.
-* Environment monitoring
+In this stage, we will build a local Kubernetes environment and migrate the project components from Docker Compose to the cluster.
+
+#### Local Kubernetes Cluster
+
+* Provision a local Kubernetes cluster using [Minikube](https://minikube.sigs.k8s.io/docs/) (primary option).
+* Optionally evaluate [kind](https://kind.sigs.k8s.io/) or [k3d](https://k3d.io/) for faster CI-like local environments.
+* Standardize deployments with Helm charts and Kubernetes manifests.
+
+#### Migration Scope
+
+* [Apache Airflow](https://airflow.apache.org) — Deploy on Kubernetes (for example with the official Helm chart), including scheduler, webserver, triggerer, and workers.
+* [Project Nessie](https://projectnessie.org) — Run as a Kubernetes service for catalog/versioning APIs.
+* Spark workloads — Execute batch jobs on Kubernetes (for example with the Spark Operator) for bronze-to-silver processing at scale.
+* Ingestion services — Run extract/load pipelines as Kubernetes CronJobs or Jobs orchestrated by Airflow.
+* Object storage for Iceberg tables — Use an S3-compatible service such as [MinIO](https://min.io/) locally to store bronze/silver/gold data files.
+
+#### Cluster Operations
+
+* Define namespaces by domain (`orchestration`, `lakehouse`, `observability`).
+* Manage secrets and connection configs for APIs, object storage, and metadata services.
+* Configure autoscaling/resource limits to understand workload behavior and cost/performance trade-offs.
+
+### Observability
+
+In this stage, we will instrument the local cluster to monitor health, performance, and failures across ingestion and data processing workloads.
+
+#### Recommended Tooling
+
+* [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) (Prometheus + Alertmanager + Grafana) — Cluster and application metrics.
+* [Loki](https://grafana.com/oss/loki/) with [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) or [Fluent Bit](https://fluentbit.io/) — Centralized logs from pods and jobs.
+* [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) — Optional telemetry pipeline for traces and standardized metrics export.
+* [K9s](https://k9scli.io/) and `kubectl` — Day-to-day troubleshooting and workload inspection.
+
+#### Key Signals to Track
+
+* **Cluster health:** node and pod status, CPU/memory pressure, restart count.
+* **Airflow health:** DAG success/failure rate, task duration, queue/backlog, worker utilization.
+* **Data pipeline quality:** ingestion latency, records processed, retries, and failed runs.
+* **Platform reliability:** API error rates, catalog availability (Nessie), and storage access failures.
 
 ### Data visualization
 
@@ -87,4 +133,12 @@ To be defined.
 
 ### IA/ML
 
-Use machine learning models in tables to predict values and implements tools to work with AI agents.
+#### Development of IA
+
+* Implement machine learning models for predictive analytics and value forecasting
+
+#### Use IA for coding
+
+* Creation of [skills](https://agentskills.io/home).
+* Creation of `AGENTS.md`.
+* Apply [spec-driven development](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/) practices to ensure effective and reliable LLM integration in code.
