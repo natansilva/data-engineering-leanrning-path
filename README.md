@@ -4,11 +4,11 @@ Roadmap developed to guide my mentoring program in Data Engineering.
 
 The practical implementation guide for this roadmap is being developed in the `feat/mentorship-practical-implementation-guide` branch.
 
-## Mentorship Objective
+## Mentorship Objectives
 
 This mentorship is focused on learning and applying software engineering fundamentals together with practical data engineering concepts. The goal is to build technical depth by implementing real workflows while reinforcing programming foundations such as SOLID principles and Design Patterns in production-like scenarios.
 
-### What will be covered
+### What Will Be Covered
 
 * Programming fundamentals applied to data pipelines, including SOLID principles and Design Patterns.
 * End-to-end data engineering workflows, from ingestion and lakehouse modeling to data visualization.
@@ -51,7 +51,7 @@ Installation and creation of a development environment that can use multiple Pyt
 
 ### Lakehouse
 
-Building a Data Lakehouse following the medallion architecture to organize data flow into three layers. Data files from all lakehouse layers will be stored in S3-compatible object storage through RustFS, allowing Apache Iceberg tables to manage metadata, partitioning, and time travel without relying on direct local disk storage as the primary persistence layer.
+This section focuses on building a data lakehouse based on the medallion architecture to organize data flow into three layers. Data files from all lakehouse layers will be stored in S3-compatible object storage through RustFS, allowing Apache Iceberg tables to manage metadata, partitioning, and time travel without relying on direct local disk storage as the primary persistence layer.
 
 * **Bronze (Raw):** Stores raw data ingested from source systems without transformations, preserving original format and structure. This layer serves as the source of truth and supports reprocessing when needed.
 * **Silver (Trusted):** Data goes through cleaning, deduplication, type enforcement, and standardization. At this stage, datasets have a defined schema and are ready to be combined and enriched. The following processing and validation steps will be applied:
@@ -72,7 +72,7 @@ Building a Data Lakehouse following the medallion architecture to organize data 
 
 ### Data Ingestion
 
-In this stage, we will ingest data from three sources and store the raw outputs in the data lake (bronze layer). After ingestion, we will apply the defined data treatment and standardization rules before promoting datasets to the silver layer.
+This section covers ingestion from three sources, storing raw outputs in the data lake (bronze layer). After ingestion, the defined data treatment and standardization rules are applied before promoting datasets to the silver layer.
 
 #### API Ingestion
 
@@ -91,7 +91,7 @@ All ingestion pipelines will land the extracted data in Iceberg tables in the br
 
 ### Data Modeling
 
-In this stage, we will model trusted datasets into a dimensional model following a star schema approach for analytical consumption.
+This section models trusted datasets into a dimensional structure following a star schema approach for analytical consumption.
 
 The gold layer will be organized with:
 
@@ -101,7 +101,7 @@ The gold layer will be organized with:
 
 ### Infrastructure
 
-In this stage, we will build a local Kubernetes environment and migrate the project components from Docker Compose to the cluster.
+This section focuses on building a local Kubernetes environment and migrating project components from Docker Compose to the cluster.
 
 #### Local Kubernetes Cluster
 
@@ -124,9 +124,9 @@ In this stage, we will build a local Kubernetes environment and migrate the proj
 * Manage secrets and connection configs for APIs, object storage, and metadata services.
 * Configure autoscaling/resource limits to understand workload behavior and cost/performance trade-offs.
 
-#### Cluster observability
+#### Cluster Observability
 
-In this stage, we will instrument the local cluster to monitor health, performance, and failures across ingestion and data processing workloads.
+This section instruments the local cluster to monitor health, performance, and failures across ingestion and data processing workloads.
 
 * [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) (Prometheus + Alertmanager + Grafana) — Cluster and application metrics.
 * [Loki](https://grafana.com/oss/loki/) with [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) or [Fluent Bit](https://fluentbit.io/) — Centralized logs from pods and jobs.
@@ -140,9 +140,9 @@ In this stage, we will instrument the local cluster to monitor health, performan
 * **Data pipeline quality:** ingestion latency, records processed, retries, and failed runs.
 * **Platform reliability:** API error rates, catalog availability (Nessie), and storage access failures.
 
-### Data visualization
+### Data Visualization
 
-In this stage, we will deploy and configure [Apache Superset](https://superset.apache.org) in the local Kubernetes cluster to provide a self-service analytics and dashboarding layer on top of the gold datasets produced in the lakehouse.
+This section deploys and configures [Apache Superset](https://superset.apache.org) in the local Kubernetes cluster to provide a self-service analytics and dashboarding layer on top of the gold datasets produced in the lakehouse.
 
 #### Apache Superset on Kubernetes
 
@@ -158,29 +158,29 @@ In this stage, we will deploy and configure [Apache Superset](https://superset.a
 * Build a first set of charts to validate the end-to-end analytical flow from ingestion to visualization.
 * Standardize dashboard creation as part of the platform setup so new curated datasets can be exposed quickly for analysis.
 
-#### Quality
+### Quality Assurance
 
-In this stage, we will define quality controls for both software implementation and data ingestion workflows to ensure the platform remains reliable, testable, and trustworthy as new sources and transformations are added.
+This section defines quality controls for both software implementation and data ingestion workflows to ensure the platform remains reliable, testable, and trustworthy as new sources and transformations are added.
 
 * Create unit tests to validate the quality of the codebase, covering ingestion components, transformation logic, and reusable platform modules.
 * Define validation rules for ingested datasets to verify schema consistency, required fields, null handling, deduplication expectations, and timestamp standardization.
 * Apply data quality checks during ingestion and processing so invalid or incomplete records can be identified before promotion to trusted layers.
 * Standardize quality gates in the development workflow so code changes and new datasets are validated before being considered ready for use.
 
-### IA/ML
+### AI/ML
 
-In this stage, we will explore the use of AI/ML both as a data product capability and as an accelerator for software engineering workflows. The objective is to connect curated lakehouse datasets to predictive use cases while also establishing practical AI-assisted development standards for the project.
+This section explores AI/ML both as a data product capability and as an accelerator for software engineering workflows. The objective is to connect curated lakehouse datasets to predictive use cases while also establishing practical AI-assisted development standards for the project.
 
-#### Development of IA
+#### AI Development
 
 * Implement machine learning models such as Time Series for predictive analytics and value forecasting.
 * Prepare gold-layer datasets so they can be consumed by training and inference workflows with clear feature definitions and reproducible inputs.
 * Evaluate model quality using consistent validation criteria to compare forecasting approaches and measure business relevance.
 * Organize experimentation workflows to support iterative development of predictive use cases based on the datasets produced in the platform.
 
-#### Use IA for coding
+#### Using AI for Coding
 
-* Creation of [skills](https://agentskills.io/home), `AGENTS.md` and [copilot instrucions](https://docs.github.com/pt/copilot/how-tos/configure-custom-instructions/add-repository-instructions).
+* Create and maintain [skills](https://agentskills.io/home), `AGENTS.md`, and [Copilot custom instructions](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions).
 * Apply [spec-driven development](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/) practices to ensure effective and reliable LLM integration in code.
 * Use [OpenCode](https://opencode.ai) and [Oh My Open Code](https://github.com/code-yeongyu/oh-my-openagent) to support AI-assisted implementation workflows during development.
 * Use [Spec Kit](https://github.com/github/spec-kit) to structure requirements, implementation plans, and delivery criteria for AI-assisted development.
