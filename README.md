@@ -37,7 +37,7 @@ Installation and creation of a development environment that can use multiple Pyt
 
 ### Lakehouse
 
-Building a Data Lakehouse following the medallion architecture to organize data flow into three layers:
+Building a Data Lakehouse following the medallion architecture to organize data flow into three layers. Data files from all lakehouse layers will be stored in S3-compatible object storage through RustFS, allowing Apache Iceberg tables to manage metadata, partitioning, and time travel without relying on direct local disk storage as the primary persistence layer.
 
 * **Bronze (Raw):** Stores raw data ingested from source systems without transformations, preserving original format and structure. This layer serves as the source of truth and supports reprocessing when needed.
 * **Silver (Trusted):** Data goes through cleaning, deduplication, type enforcement, and standardization. At this stage, datasets have a defined schema and are ready to be combined and enriched. The following processing and validation steps will be applied:
@@ -49,7 +49,8 @@ Building a Data Lakehouse following the medallion architecture to organize data 
 
 #### Technologies Used
 
-* [Apache Iceberg](https://iceberg.apache.org) — Used as the table storage format across all lakehouse layers. Tables will be created and managed with Iceberg, using partitioning to optimize queries and time travel for reprocessing and auditability.
+* [Apache Iceberg](https://iceberg.apache.org) — Used as the table storage format across all lakehouse layers. Tables will be created and managed with Iceberg, using partitioning to optimize queries and time travel for reprocessing and auditability. Table data and metadata files will be persisted in RustFS through its S3-compatible interface.
+* [RustFS](https://rustfs.com/) — Used as the local S3-compatible object storage layer for the lakehouse. RustFS will store Iceberg data files for bronze, silver, and gold tables, replacing direct local disk persistence and providing an object storage interface closer to production-style lakehouse environments.
 * [Apache Spark](https://spark.apache.org) — Used to run bronze-to-silver transformations, applying the defined cleaning, deduplication, timestamp standardization, and data enrichment rules.
 * [Polars](https://pola.rs) with [PyIceberg](https://py.iceberg.apache.org) — Used as a local alternative to Spark during development and testing. Polars runs the same bronze-to-silver transformations locally, while PyIceberg handles reading and writing Iceberg tables.
 * [SQLMesh](https://sqlmesh.readthedocs.io/en/stable/) with [DuckDB](https://duckdb.org) — Used to model and materialize gold-layer datasets. SQL models are versioned and tested with SQLMesh, while DuckDB serves as the local execution engine for analytical queries.
@@ -57,8 +58,7 @@ Building a Data Lakehouse following the medallion architecture to organize data 
 
 ### Data Ingestion
 
-In this stage, we will ingest data from three sources and store the raw outputs in the data lake (bronze layer).
-After ingestion, we will apply the defined data treatment and standardization rules before promoting datasets to the silver layer.
+In this stage, we will ingest data from three sources and store the raw outputs in the data lake (bronze layer). After ingestion, we will apply the defined data treatment and standardization rules before promoting datasets to the silver layer.
 
 #### API Ingestion
 
@@ -101,7 +101,7 @@ In this stage, we will build a local Kubernetes environment and migrate the proj
 * [Project Nessie](https://projectnessie.org) — Run as a Kubernetes service for catalog/versioning APIs.
 * Spark workloads — Execute batch jobs on Kubernetes (for example with the Spark Operator) for bronze-to-silver processing at scale.
 * Ingestion services — Run extract/load pipelines as Kubernetes CronJobs or Jobs orchestrated by Airflow.
-* Object storage for Iceberg tables — Use an S3-compatible service such as [MinIO](https://min.io/) locally to store bronze/silver/gold data files.
+* Object storage for Iceberg tables — Use [RustFS](https://rustfs.com/) as the local S3-compatible object storage service to persist bronze, silver, and gold data files managed by Apache Iceberg.
 
 #### Cluster Operations
 
