@@ -144,6 +144,15 @@ In this stage, we will deploy and configure [Apache Superset](https://superset.a
 * Build a first set of charts to validate the end-to-end analytical flow from ingestion to visualization.
 * Standardize dashboard creation as part of the platform setup so new curated datasets can be exposed quickly for analysis.
 
+#### Quality
+
+In this stage, we will define quality controls for both software implementation and data ingestion workflows to ensure the platform remains reliable, testable, and trustworthy as new sources and transformations are added.
+
+* Create unit tests to validate the quality of the codebase, covering ingestion components, transformation logic, and reusable platform modules.
+* Define validation rules for ingested datasets to verify schema consistency, required fields, null handling, deduplication expectations, and timestamp standardization.
+* Apply data quality checks during ingestion and processing so invalid or incomplete records can be identified before promotion to trusted layers.
+* Standardize quality gates in the development workflow so code changes and new datasets are validated before being considered ready for use.
+
 ### IA/ML
 
 In this stage, we will explore the use of AI/ML both as a data product capability and as an accelerator for software engineering workflows. The objective is to connect curated lakehouse datasets to predictive use cases while also establishing practical AI-assisted development standards for the project.
