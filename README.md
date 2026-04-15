@@ -129,7 +129,21 @@ In this stage, we will instrument the local cluster to monitor health, performan
 
 ### Data visualization
 
-To be defined.
+In this stage, we will deploy and configure [Apache Superset](https://superset.apache.org) in the local Kubernetes cluster to provide a self-service analytics and dashboarding layer on top of the gold datasets produced in the lakehouse.
+
+#### Apache Superset on Kubernetes
+
+* Deploy Apache Superset on Kubernetes using Helm charts and Kubernetes manifests.
+* Configure Superset services, application settings, secrets, and persistent components required for local development.
+* Expose the Superset web interface inside the cluster for dashboard authoring and exploration.
+* Configure database connections so Superset can query curated gold-layer datasets used for analytics.
+* Organize access, saved connections, and semantic dataset definitions to support reusable business views.
+
+#### Initial Dashboard
+
+* Create a simple dashboard in Superset using one or more gold-layer datasets.
+* Build a first set of charts to validate the end-to-end analytical flow from ingestion to visualization.
+* Standardize dashboard creation as part of the platform setup so new curated datasets can be exposed quickly for analysis.
 
 ### IA/ML
 
