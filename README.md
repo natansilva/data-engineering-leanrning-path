@@ -1,6 +1,20 @@
 # Data Engineering Learning Path
 
-Roadmap developed to guide my mentoring program in Data Engineering
+Roadmap developed to guide my mentoring program in Data Engineering.
+
+The practical implementation guide for this roadmap is being developed in the `feat/mentorship-practical-implementation-guide` branch.
+
+## Mentorship Objective
+
+This mentorship is focused on learning and applying software engineering fundamentals together with practical data engineering concepts. The goal is to build technical depth by implementing real workflows while reinforcing programming foundations such as SOLID principles and Design Patterns in production-like scenarios.
+
+### What will be covered
+
+* Programming fundamentals applied to data pipelines, including SOLID principles and Design Patterns.
+* End-to-end data engineering workflows, from ingestion and lakehouse modeling to data visualization.
+* Platform and infrastructure practices for local and cloud-native environments with Kubernetes-based components.
+* Data quality, code quality, observability, and reliable operational standards.
+* Practical usage of AI-assisted development workflows to improve implementation quality and delivery speed.
 
 ## Roadmap
 
