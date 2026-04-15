@@ -99,6 +99,7 @@ In this stage, we will build a local Kubernetes environment and migrate the proj
 
 * [Apache Airflow](https://airflow.apache.org) — Deploy on Kubernetes (for example with the official Helm chart), including scheduler, webserver, triggerer, and workers.
 * [Project Nessie](https://projectnessie.org) — Run as a Kubernetes service for catalog/versioning APIs.
+* [Spark Operator](https://github.com/kubeflow/spark-operator) — Deploy on Kubernetes to manage Spark applications submitted as part of the ingestion process, enabling batch execution for extraction, transformation, and bronze-to-silver workloads.
 * Spark workloads — Execute batch jobs on Kubernetes (for example with the Spark Operator) for bronze-to-silver processing at scale.
 * Ingestion services — Run extract/load pipelines as Kubernetes CronJobs or Jobs orchestrated by Airflow.
 * Object storage for Iceberg tables — Use [RustFS](https://rustfs.com/) as the local S3-compatible object storage service to persist bronze, silver, and gold data files managed by Apache Iceberg.
@@ -109,11 +110,9 @@ In this stage, we will build a local Kubernetes environment and migrate the proj
 * Manage secrets and connection configs for APIs, object storage, and metadata services.
 * Configure autoscaling/resource limits to understand workload behavior and cost/performance trade-offs.
 
-### Observability
+#### Cluster observability
 
 In this stage, we will instrument the local cluster to monitor health, performance, and failures across ingestion and data processing workloads.
-
-#### Recommended Tooling
 
 * [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) (Prometheus + Alertmanager + Grafana) — Cluster and application metrics.
 * [Loki](https://grafana.com/oss/loki/) with [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) or [Fluent Bit](https://fluentbit.io/) — Centralized logs from pods and jobs.
