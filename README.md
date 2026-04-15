@@ -146,12 +146,20 @@ In this stage, we will deploy and configure [Apache Superset](https://superset.a
 
 ### IA/ML
 
+In this stage, we will explore the use of AI/ML both as a data product capability and as an accelerator for software engineering workflows. The objective is to connect curated lakehouse datasets to predictive use cases while also establishing practical AI-assisted development standards for the project.
+
 #### Development of IA
 
-* Implement machine learning models for predictive analytics and value forecasting
+* Implement machine learning models such as Time Series for predictive analytics and value forecasting.
+* Prepare gold-layer datasets so they can be consumed by training and inference workflows with clear feature definitions and reproducible inputs.
+* Evaluate model quality using consistent validation criteria to compare forecasting approaches and measure business relevance.
+* Organize experimentation workflows to support iterative development of predictive use cases based on the datasets produced in the platform.
 
 #### Use IA for coding
 
-* Creation of [skills](https://agentskills.io/home).
-* Creation of `AGENTS.md`.
+* Creation of [skills](https://agentskills.io/home), `AGENTS.md` and [copilot instrucions](https://docs.github.com/pt/copilot/how-tos/configure-custom-instructions/add-repository-instructions).
 * Apply [spec-driven development](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/) practices to ensure effective and reliable LLM integration in code.
+* Use [OpenCode](https://opencode.ai) and [Oh My Open Code](https://github.com/code-yeongyu/oh-my-openagent) to support AI-assisted implementation workflows during development.
+* Use [Spec Kit](https://github.com/github/spec-kit) to structure requirements, implementation plans, and delivery criteria for AI-assisted development.
+* Define reusable agent instructions, prompts, and repository conventions so coding assistants operate with project-specific context and engineering standards.
+* Apply AI tooling to accelerate documentation, implementation scaffolding, and review workflows while keeping human validation for architecture, quality, and correctness.
