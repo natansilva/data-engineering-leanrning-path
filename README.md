@@ -61,13 +61,19 @@ This section focuses on building a data lakehouse based on the medallion archite
   * Timestamp standardization: all date and time fields are converted to the `UTC-3 (America/Sao_Paulo)` time zone and stored in ISO 8601 format.
 * **Gold (Refined):** Layer with aggregated and modeled datasets for BI tools, dashboards, and AI/ML models. Business rules are applied here to create final analytical views.
 
+#### Layer Management Strategy
+
+All lakehouse tables are defined and versioned through SQLMesh as the single control plane for table lifecycle, metadata standards, and deployment workflows. Bronze and Silver datasets are initially registered as external tables to preserve ingestion flexibility and allow Spark/Polars transformations where needed. Gold datasets are materialized through SQLMesh models with automated testing and versioned promotion.
+
 #### Technologies Used
 
 * [Apache Iceberg](https://iceberg.apache.org) — Used as the table storage format across all lakehouse layers. Tables will be created and managed with Iceberg, using partitioning to optimize queries and time travel for reprocessing and auditability. Table data and metadata files will be persisted in RustFS through its S3-compatible interface.
 * [RustFS](https://rustfs.com/) — Used as the local S3-compatible object storage layer for the lakehouse. RustFS will store Iceberg data files for bronze, silver, and gold tables, replacing direct local disk persistence and providing an object storage interface closer to production-style lakehouse environments.
 * [Apache Spark](https://spark.apache.org) — Used to run bronze-to-silver transformations, applying the defined cleaning, deduplication, timestamp standardization, and data enrichment rules.
 * [Polars](https://pola.rs) with [PyIceberg](https://py.iceberg.apache.org) — Used as a local alternative to Spark during development and testing. Polars runs the same bronze-to-silver transformations locally, while PyIceberg handles reading and writing Iceberg tables.
-* [SQLMesh](https://sqlmesh.readthedocs.io/en/stable/) with [DuckDB](https://duckdb.org) — Used to model and materialize gold-layer datasets. SQL models are versioned and tested with SQLMesh, while DuckDB serves as the local execution engine for analytical queries.
+* [Trino](https://trino.io) — Used as the central query engine for governed analytical access to Iceberg tables across the lakehouse. Trino will serve as the enforced access path for users, BI tools, and policy-controlled reads.
+* [Apache Ranger](https://ranger.apache.org) — Used to manage authorization policies for Trino access, including role-based access by layer, column masking, row-level filters, and audit trails.
+* [SQLMesh](https://sqlmesh.readthedocs.io/en/stable/) with [Trino](https://trino.io) — Used as the central modeling and deployment layer for the lakehouse. Bronze and Silver tables are registered as external tables, and Gold datasets are materialized through versioned SQLMesh models and tests.
 * [Project Nessie](https://projectnessie.org) — Used as the catalog service for Iceberg tables. Branches will be created to isolate development and validate changes before promoting them to production.
 
 ### Data Ingestion
@@ -89,6 +95,15 @@ All ingestion pipelines will land the extracted data in Iceberg tables in the br
 * Execution of processing steps to clean, deduplicate, and standardize data before loading into the silver layer.
 * Scheduled and manual DAG runs to support both recurring loads and ad-hoc reprocessing.
 
+#### Quality Assurance
+
+This section defines quality controls for both software implementation and data ingestion workflows to ensure the platform remains reliable, testable, and trustworthy as new sources and transformations are added.
+
+* Create unit tests to validate the quality of the codebase, covering ingestion components, transformation logic, and reusable platform modules.
+* Define validation rules for ingested datasets to verify schema consistency, required fields, null handling, deduplication expectations, and timestamp standardization.
+* Apply data quality checks during ingestion and processing so invalid or incomplete records can be identified before promotion to trusted layers.
+* Standardize quality gates in the development workflow so code changes and new datasets are validated before being considered ready for use.
+
 ### Data Modeling
 
 This section models trusted datasets into a dimensional structure following a star schema approach for analytical consumption.
@@ -98,6 +113,50 @@ The gold layer will be organized with:
 * **Fact tables** for business events and measurable metrics (for example, counts, durations, and aggregates).
 * **Dimension tables** for descriptive business attributes (for example, team, driver, event, date, and location).
 * **Defined grain and keys** to ensure consistency in joins, filtering, and KPI calculations.
+
+### Data Security and Access Governance
+
+This section is intentionally placed after data modeling because the goal is to discuss security after datasets already exist across bronze, silver, and gold. At this stage, the project can move from only building the lakehouse to governing who can read, transform, and consume each layer.
+
+The main idea is to make access control part of the platform design, not an afterthought. Once data is available in all layers, the next step is to define which technical and business roles can interact with each layer, which columns must be protected, and which rows should be visible for each audience.
+
+The governance model will be based on centralizing analytical access through [Trino](https://trino.io), while keeping direct object storage access restricted to technical service accounts.
+
+* [Trino](https://trino.io) will act as the single query access layer for users and analytical tools, preventing direct reads from the object storage layer.
+* [Apache Ranger](https://ranger.apache.org) will define and enforce authorization policies for catalogs, schemas, tables, columns, and row filters exposed through Trino.
+* [RustFS](https://rustfs.com/) access will be restricted to the Trino service account and to pipeline service accounts used for ingestion and transformation workloads.
+* Human users and BI tools will not access RustFS, Iceberg files, or table metadata directly; all governed reads must go through Trino.
+* [Project Nessie](https://projectnessie.org) administration will be restricted so only authorized technical roles can manage catalog branches, table registration, and metadata changes.
+
+The role model can start with the following responsibilities:
+
+* **Ingestion service account:** write access to bronze, no human usage, and only the minimum permissions required to load raw data.
+* **Transformation service account:** read access to bronze and silver, write access to silver and gold according to the transformation step being executed.
+* **Data engineer:** read access to bronze and silver for troubleshooting, validation, and reprocessing support, with controlled write access only through managed pipelines or approved administrative workflows.
+* **Data analyst:** read access primarily to gold, with optional restricted access to selected silver datasets when needed for exploration or validation.
+* **BI/consumption tools:** read access only through Trino, usually focused on curated gold datasets exposed for dashboards and self-service analytics.
+* **Platform administrator:** manage infrastructure, policies, service accounts, and catalog administration without using broad direct access patterns for daily analysis.
+
+The table below can be used as the initial access matrix for the project:
+
+| Role | Bronze | Silver | Gold | Notes |
+| --- | --- | --- | --- | --- |
+| Ingestion service account | Write | No access | No access | Used only by ingestion workloads landing raw data. |
+| Transformation service account | Read | Read/Write | Write | Used by processing jobs that promote data across layers. |
+| Data engineer | Restricted read | Read | Read | Supports troubleshooting, validation, and controlled reprocessing workflows. |
+| Data analyst | No access | Restricted read | Read | Silver access is optional and limited to approved exploration scenarios. |
+| BI/consumption tools | No access | No access | Read | Access happens only through Trino over curated analytical datasets. |
+| Platform administrator | Administrative only | Administrative only | Administrative only | Manages policies, infrastructure, identities, and catalog operations. |
+
+The security model will include:
+
+* **Layer-based RBAC:** roles scoped to bronze, silver, and gold according to operational and analytical responsibilities.
+* **Column-level security:** masking or restricting access to sensitive fields such as personal, financial, or operationally restricted attributes.
+* **Row-level security:** policy-based row filters to limit visibility by business unit, tenant, region, or other domain-specific predicates.
+* **Least-privilege service accounts:** separate technical identities for ingestion, transformation, and query workloads with the minimum required permissions.
+* **Auditability:** access decisions and policy changes logged to support troubleshooting, review, and governance practices.
+
+In practice, this means bronze remains highly restricted, silver is shared only with roles involved in validation and engineering workflows, and gold becomes the main governed access layer for analytical consumption. This approach ensures that Trino becomes the controlled access plane for refined data consumption, while RustFS remains protected from bypass by direct user access.
 
 ### Infrastructure
 
@@ -113,6 +172,8 @@ This section focuses on building a local Kubernetes environment and migrating pr
 
 * [Apache Airflow](https://airflow.apache.org) — Deploy on Kubernetes (for example with the official Helm chart), including scheduler, webserver, triggerer, and workers.
 * [Project Nessie](https://projectnessie.org) — Run as a Kubernetes service for catalog/versioning APIs.
+* [Trino](https://trino.io) — Deploy on Kubernetes as the governed SQL query layer used by users, BI tools, and policy-controlled analytical workloads.
+* [Apache Ranger](https://ranger.apache.org) — Deploy on Kubernetes to centralize authorization policies for Trino and provide access auditability.
 * [Spark Operator](https://github.com/kubeflow/spark-operator) — Deploy on Kubernetes to manage Spark applications submitted as part of the ingestion process, enabling batch execution for extraction, transformation, and bronze-to-silver workloads.
 * Spark workloads — Execute batch jobs on Kubernetes (for example with the Spark Operator) for bronze-to-silver processing at scale.
 * Ingestion services — Run extract/load pipelines as Kubernetes CronJobs or Jobs orchestrated by Airflow.
@@ -122,6 +183,7 @@ This section focuses on building a local Kubernetes environment and migrating pr
 
 * Define namespaces by domain (`orchestration`, `lakehouse`, `observability`).
 * Manage secrets and connection configs for APIs, object storage, and metadata services.
+* Define service accounts and least-privilege access patterns for ingestion workloads, transformation workloads, Trino, and administrative components.
 * Configure autoscaling/resource limits to understand workload behavior and cost/performance trade-offs.
 
 #### Cluster Observability
@@ -157,15 +219,6 @@ This section deploys and configures [Apache Superset](https://superset.apache.or
 * Create a simple dashboard in Superset using one or more gold-layer datasets.
 * Build a first set of charts to validate the end-to-end analytical flow from ingestion to visualization.
 * Standardize dashboard creation as part of the platform setup so new curated datasets can be exposed quickly for analysis.
-
-### Quality Assurance
-
-This section defines quality controls for both software implementation and data ingestion workflows to ensure the platform remains reliable, testable, and trustworthy as new sources and transformations are added.
-
-* Create unit tests to validate the quality of the codebase, covering ingestion components, transformation logic, and reusable platform modules.
-* Define validation rules for ingested datasets to verify schema consistency, required fields, null handling, deduplication expectations, and timestamp standardization.
-* Apply data quality checks during ingestion and processing so invalid or incomplete records can be identified before promotion to trusted layers.
-* Standardize quality gates in the development workflow so code changes and new datasets are validated before being considered ready for use.
 
 ### AI/ML
 
